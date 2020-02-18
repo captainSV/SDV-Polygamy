@@ -1,4 +1,4 @@
-﻿using StardewValley;
+using StardewValley;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -208,7 +208,7 @@ namespace Polygamy
         public static string GetWeddingDialogue(int dialogue, List<NPC> NewSpouses, List<NPC> OldSpouses)
         {
             if (dialogue == 0) {
-                string pronoun = Game1.player.IsMale ? "he" : "she";
+                string pronoun = "they";
                 string spouseList = "";
                 if (OldSpouses.Count == 0 && NewSpouses.Count == 1)
                 {
@@ -218,7 +218,7 @@ namespace Polygamy
                 {
                     if ((OldSpouses.Count + NewSpouses.Count) > 9)
                     {
-                        spouseList += " and " + (Game1.player.IsMale ? "his " : "her ") + "bevy of ";
+                        spouseList += " and " + "they" + "bevy of ";
                         bool hasMales = false;
                         bool hasFemales = false;
                         foreach (var nx1 in NewSpouses)
@@ -606,10 +606,8 @@ namespace Polygamy
 
         public bool IsValidSpouse(string NPC)
         {
-            if (string.IsNullOrWhiteSpace(NPC)) return false;
-            if (Spouses.Contains(NPC)) return true;
-            if (PrimarySpouse == NPC) return true;
-            return false;
+            return !string.IsNullOrWhiteSpace(NPC)
+                   && (Spouses.Contains(NPC) || PrimarySpouse == NPC);
         }
 
         public string GetNextPrimarySpouse()
@@ -659,7 +657,12 @@ namespace Polygamy
             npc = null;
         }
 
-        public void Kiss(string NPC)
+        /// <summary>
+        /// Returns false if kiss fails
+        /// </summary>
+        /// <param name="NPC">NPC to kiss</param>
+        /// <param name="minimumHeartLevel">NPC will give angry emote and you will feel bad</param>
+        public bool TryKiss(string NPC, int minimumHeartLevel)
         {
             var npcObject = Game1.getCharacterFromName(NPC);
             var player = Game1.player;
@@ -670,71 +673,76 @@ namespace Polygamy
                 {
                     npcObject.faceDirection(-3);
                 }
-                if (npcObject.Sprite.CurrentAnimation == null && !npcObject.hasTemporaryMessageAvailable() && npcObject.CurrentDialogue.Count == 0 && Game1.timeOfDay < 2200 && !npcObject.isMoving() && player.ActiveObject == null)
+                if (npcObject.Sprite.CurrentAnimation == null 
+                    && !npcObject.hasTemporaryMessageAvailable() 
+                    && npcObject.CurrentDialogue.Count == 0 
+                    /* && Game1.timeOfDay < 2200 */ // shoeless03 - Why is this a constraint?
+                    && !npcObject.isMoving() 
+                    && player.ActiveObject == null)
                 {
                     npcObject.faceGeneralDirection(player.getStandingPosition());
                     player.faceGeneralDirection(npcObject.getStandingPosition());
                     if (npcObject.FacingDirection == 3 || npcObject.FacingDirection == 1)
                     {
-                        int frame = 28;
-                        bool flag = true;
+                        int characterSheetFrame = 28;
+                        bool facingDirectionFlag = true;
                         switch (npcObject.Name)
                         {
                             case "Maru":
-                                frame = 28;
-                                flag = false;
+                                characterSheetFrame = 28;
+                                facingDirectionFlag = false;
                                 break;
                             case "Harvey":
-                                frame = 31;
-                                flag = false;
+                                characterSheetFrame = 31;
+                                facingDirectionFlag = false;
                                 break;
                             case "Leah":
-                                frame = 25;
-                                flag = true;
+                                characterSheetFrame = 25;
+                                facingDirectionFlag = true;
                                 break;
                             case "Elliott":
-                                frame = 35;
-                                flag = false;
+                                characterSheetFrame = 35;
+                                facingDirectionFlag = false;
                                 break;
                             case "Sebastian":
-                                frame = 40;
-                                flag = false;
+                                characterSheetFrame = 40;
+                                facingDirectionFlag = false;
                                 break;
                             case "Abigail":
-                                frame = 33;
-                                flag = false;
+                                characterSheetFrame = 33;
+                                facingDirectionFlag = false;
                                 break;
                             case "Penny":
-                                frame = 35;
-                                flag = true;
+                                characterSheetFrame = 35;
+                                facingDirectionFlag = true;
                                 break;
                             case "Alex":
-                                frame = 42;
-                                flag = true;
+                                characterSheetFrame = 42;
+                                facingDirectionFlag = true;
                                 break;
                             case "Sam":
-                                frame = 36;
-                                flag = true;
+                                characterSheetFrame = 36;
+                                facingDirectionFlag = true;
                                 break;
                             case "Shane":
-                                frame = 34;
-                                flag = false;
+                                characterSheetFrame = 34;
+                                facingDirectionFlag = false;
                                 break;
                             case "Emily":
-                                frame = 33;
-                                flag = false;
+                                characterSheetFrame = 33;
+                                facingDirectionFlag = false;
                                 break;
                         }
-                        bool flag2 = (flag && npcObject.FacingDirection == 3) || (!flag && npcObject.FacingDirection == 1);
-                        if (player.getFriendshipHeartLevelForNPC(npcObject.Name) > 9)
+                        bool shouldFlipFlag = (facingDirectionFlag && npcObject.FacingDirection == 3) || (!facingDirectionFlag && npcObject.FacingDirection == 1);
+                        if (player.getFriendshipHeartLevelForNPC(npcObject.Name) >= minimumHeartLevel)
                         {
                             npcObject.Sprite.setCurrentAnimation(new List<FarmerSprite.AnimationFrame>
                             {
-                                new FarmerSprite.AnimationFrame(frame, Game1.IsMultiplayer ? 1010 : 10, false, flag2, npcObject.haltMe, true)
+                                new FarmerSprite.AnimationFrame(characterSheetFrame, Game1.IsMultiplayer ? 1010 : 10, false, shouldFlipFlag, npcObject.haltMe, true)
                             });
                             if (true /* !npcObject.hasBeenKissedToday */)
                             {
-                                player.changeFriendship(10, npcObject);
+                                //player.changeFriendship(10, npcObject); // shoeless03 - Not fair with my addition imo
                                 /*
                                 Game1.Multiplayer.broadcastSprites(who.currentLocation, new TemporaryAnimatedSprite("LooseSprites\\Cursors", new Microsoft.Xna.Framework.Rectangle(211, 428, 7, 6), 2000f, 1, 0, new Vector2(getTileX(), getTileY()) * 64f + new Vector2(16f, -64f), flicker: false, flipped: false, 1f, 0f, Color.White, 4f, 0f, 0f, 0f)
                                 {
@@ -743,10 +751,11 @@ namespace Polygamy
                                 });
                                 */
                                 player.currentLocation.playSound("dwop");
-                                player.exhausted.Value = false;
+                                player.exhausted.Value = false; // shoeless03 - Fair?
                             }
                             //npcObject.hasBeenKissedToday = true;
                             //if not in the 'no animation frame for kissing' list, then show the kissing frame
+                            // TODO: Make kissing frames
                             if (!new[] { "Bouncer", "Caroline", "Clint", "Demetrius", "Dwarf", "Evelyn", "George", "Gil", "Governor", "Grandpa", "Gunther", "Gus", "Henchman", "Jas", "Jodi", "Kent", "Krobus", "Lewis", "Linus", "Marlon", "Marnie", "Morris", "Mr. Qi", "Old Mariner", "Pam", "Pierre", "Robin", "Sandy", "Vincent", "Willy", "Wizard" }.Contains(npcObject.Name))
                                 npcObject.Sprite.UpdateSourceRect();
                         }
@@ -757,7 +766,7 @@ namespace Polygamy
                         }
                         player.CanMove = false;
                         player.FarmerSprite.PauseForSingleAnimation = false;
-                        if ((flag && !flag2) || (!flag && flag2))
+                        if ((facingDirectionFlag && !shouldFlipFlag) || (!facingDirectionFlag && shouldFlipFlag))
                         {
                             player.faceDirection(3);
                         }
@@ -770,10 +779,24 @@ namespace Polygamy
                             new FarmerSprite.AnimationFrame(101, 1000, 0, false, player.FacingDirection == 3),
                             new FarmerSprite.AnimationFrame(6, 1, false, player.FacingDirection == 3, Farmer.completelyStopAnimating)
                         }.ToArray());
-                        return;
+                        return true;
                     }
+                    Modworks.Log.Trace($"Polygamy, Kiss failed: npcObject.FacingDirection == 3: {npcObject.FacingDirection == 3} npcObject.FacingDirection == 1: {npcObject.FacingDirection == 1}");
+                }
+                else
+                {
+                    Modworks.Log.Trace($"Polygamy, Kiss failed:{Environment.NewLine} npcObject.Sprite.CurrentAnimation == null: {npcObject.Sprite.CurrentAnimation == null}. {Environment.NewLine}" +
+                        $"!npcObject.hasTemporaryMessageAvailable(): {!npcObject.hasTemporaryMessageAvailable()}. {Environment.NewLine}" +
+                        $"npcObject.CurrentDialogue.Count == 0: {npcObject.CurrentDialogue.Count == 0}. {Environment.NewLine}" +
+                        $"Game1.timeOfDay < 2200: {Game1.timeOfDay < 2200} {Environment.NewLine}" +
+                        $"!npcObject.isMoving(): {!npcObject.isMoving()}. {Environment.NewLine}" +
+                        $"player.ActiveObject == null: {player.ActiveObject == null}.");
                 }
             }
+            else
+                Modworks.Log.Trace("Polygamy, Kiss failed: Not Local Player");
+
+            return false;
         }
 
         public void ScanForNPCs()

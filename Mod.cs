@@ -1,11 +1,12 @@
-﻿using StardewModdingAPI;
-using StardewValley;
-using StardewModdingAPI.Events;
-using System.Collections.Generic;
-using System;
 using Microsoft.Xna.Framework;
-using Modworks = bwdyworks.Modworks;
+using StardewModdingAPI;
+using StardewModdingAPI.Events;
+using StardewValley;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+
+using Modworks = bwdyworks.Modworks;
 
 namespace Polygamy
 {
@@ -75,7 +76,8 @@ namespace Polygamy
 
         private void Events_NPCCheckAction(object sender, bwdyworks.Events.NPCCheckActionEventArgs args)
         {
-            if (args.Cancelled) return; //someone else already ate this one
+            if (args.Cancelled) 
+                return; //someone else already ate this one
 
             //do we care about this NPC for our purposes?
             var targetedNPCs = Modworks.NPCs.GetAllCharacterNames(true, false, args.Farmer.currentLocation);
@@ -239,7 +241,7 @@ namespace Polygamy
                 return;
             } else if (parameters[0] == "kiss")
             {
-                Relationships.Kiss(npc.Name);
+                Relationships.TryKiss(npc.Name, 10);
                 return;
             } else if(Game1.getLocationFromName(Game1.player.homeLocation.Value) == Game1.currentLocation)
             {
@@ -357,7 +359,7 @@ namespace Polygamy
                 FixSpouseSchedule(Game1.getLocationFromName(Game1.player.homeLocation.Value), nextPrimarySpouse);
 
                 //if previous isn't null, stick them in bed with the player
-                var bedSpot = (Game1.getLocationFromName(Game1.player.homeLocation.Value) as StardewValley.Locations.FarmHouse).getSpouseBedSpot();
+                var bedSpot = (Game1.getLocationFromName(Game1.player.homeLocation.Value) as StardewValley.Locations.FarmHouse).getSpouseBedSpot(nextPrimarySpouse.name);
                 if (lastPrimarySpouse != null)
                 {
                     Modworks.NPCs.Warp(lastPrimarySpouse, farmHouseName, bedSpot);
@@ -372,7 +374,7 @@ namespace Polygamy
                     {
                         //if (lastPrimarySpouse != null && spouseName == lastPrimarySpouse.Name) continue;
                         //random dogpile in bed
-                        if (Modworks.RNG.Next(100) < Math.Max(100 - Relationships.Spouses.Count * 7, 3))
+                        if (true)//Modworks.RNG.Next(100) < Math.Max(100 - Relationships.Spouses.Count * 7, 3))
                         {
                             var npcObject = Game1.getCharacterFromName(spouseName);
                             Modworks.NPCs.Warp(npcObject, farmHouseName, (Game1.getLocationFromName(farmHouseName) as StardewValley.Locations.FarmHouse).getBedSpot());
@@ -452,7 +454,12 @@ namespace Polygamy
         }
 
 
-
+        /// <summary>
+        /// ////////////////////////////////
+        /// </summary>
+        /// <param name="l"></param>
+        /// <param name="npc"></param>
+        /// <param name="poly"></param>
         public void FixSpouseSchedule(GameLocation l, NPC npc, bool poly = false)
         {
             if (poly)
@@ -467,6 +474,9 @@ namespace Polygamy
             } else
             {
                 string text = Game1.shortDayNameFromDayOfSeason(Game1.dayOfMonth);
+
+
+
                 if ((npc.Name.Equals("Penny") && (text.Equals("Tue") || text.Equals("Wed") || text.Equals("Fri"))) || (npc.Name.Equals("Maru") && (text.Equals("Tue") || text.Equals("Thu"))) || (npc.Name.Equals("Harvey") && (text.Equals("Tue") || text.Equals("Thu"))))
                 {
                     npc.setNewDialogue("MarriageDialogue", "jobLeave_", -1, add: false, clearOnMovement: true);
